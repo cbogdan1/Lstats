@@ -1,4 +1,4 @@
-import type { Platform, PlayerProfile, RiotId } from '@lol/shared';
+import type { MatchDetails, Platform, PlayerProfile, RiotId, SeasonChampions } from '@lol/shared';
 
 // `?.` because import.meta.env only exists under Vite, not when tests run in plain Node.
 const API_URL: string = import.meta.env?.VITE_API_URL ?? '/api';
@@ -37,15 +37,31 @@ export function parseRiotId(input: string): RiotId | null {
   return { gameName, tagLine };
 }
 
-export async function fetchProfile(
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? body.message ?? `Request failed (${res.status})`);
+  return body as T;
+}
+
+export function fetchProfile(
   platform: Platform,
   { gameName, tagLine }: RiotId,
   apiUrl = API_URL,
 ): Promise<PlayerProfile> {
-  const res = await fetch(
+  return getJson(
     `${apiUrl}/profile/${platform}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
   );
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error ?? body.message ?? `Request failed (${res.status})`);
-  return body as PlayerProfile;
+}
+
+export function fetchMatchDetails(matchId: string, apiUrl = API_URL): Promise<MatchDetails> {
+  return getJson(`${apiUrl}/match/${encodeURIComponent(matchId)}`);
+}
+
+export function fetchSeasonChampions(
+  platform: Platform,
+  puuid: string,
+  apiUrl = API_URL,
+): Promise<SeasonChampions> {
+  return getJson(`${apiUrl}/season-champions/${platform}/${encodeURIComponent(puuid)}`);
 }

@@ -34,6 +34,9 @@ export const PLATFORM_REGIONS: Record<Platform, 'americas' | 'asia' | 'europe' |
   vn2: 'sea',
 };
 
+export const isPlatform = (value: string): value is Platform =>
+  Object.hasOwn(PLATFORM_REGIONS, value);
+
 /** Cache TTLs in seconds. */
 export const TTL = {
   account: 60 * 60 * 24 * 7, // Riot ID -> PUUID changes only on rename
@@ -42,4 +45,5 @@ export const TTL = {
   mastery: 60 * 60,
   matchIds: 60 * 2,
   match: 60 * 60 * 24 * 30, // finished matches are immutable
+  rankedGame: 60 * 60 * 24 * 180, // ~150-byte season summaries, kept for about a season
 };

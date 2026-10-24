@@ -2,7 +2,7 @@ import { after, beforeEach, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cache, redis } from './cache.js';
 import { config } from './config.js';
-import { getProfile, toMatchSummary } from './profile.js';
+import { getMatchDetails, getProfile, toMatchSummary } from './profile.js';
 import type { MatchDto, ParticipantDto } from './riot.js';
 
 after(() => redis.disconnect());
@@ -24,6 +24,8 @@ function participant(puuid: string, overrides: Partial<ParticipantDto> = {}): Pa
     teamId: 100,
     win: true,
     gameEndedInEarlySurrender: false,
+    totalDamageDealtToChampions: 20_000,
+    goldEarned: 12_000,
     item0: 1,
     item1: 2,
     item2: 0,
@@ -65,6 +67,15 @@ test('toMatchSummary reports the match from the given player side', () => {
     ],
   );
   assert.equal(toMatchSummary(m, 'stranger'), null);
+});
+
+test('toMatchSummary computes kill participation from the player team only', () => {
+  const m = match('EUN1_3', [
+    participant('me', { kills: 3, assists: 3 }),
+    participant('ally', { kills: 9 }),
+    participant('foe', { teamId: 200, kills: 50 }),
+  ]);
+  assert.equal(toMatchSummary(m, 'me')!.killParticipation, 0.5); // (3+3) / (3+9)
 });
 
 test('toMatchSummary converts pre-11.20 durations from ms', () => {
@@ -146,4 +157,45 @@ test('getProfile explains unknown Riot IDs and wrong servers', async () => {
 
   routes = { ...base(), '/lol/summoner/v4/summoners/by-puuid/me': { status: 404 } };
   await assert.rejects(getProfile('eun1', 'Faker', 'KR1'), /no League profile on this server/);
+});
+
+test('getMatchDetails adds each player current rank, preferring Solo/Duo over Flex', async () => {
+  const entry = (queueType: string, tier: string) => ({
+    queueType,
+    tier,
+    rank: 'I',
+    leaguePoints: 10,
+    wins: 1,
+    losses: 1,
+    leagueId: 'x',
+  });
+  routes = {
+    '/lol/match/v5/matches/EUN1_9': {
+      body: match('EUN1_9', [
+        participant('a'),
+        participant('b', { teamId: 200 }),
+        participant('c', { teamId: 200 }),
+        participant('BOT', { teamId: 200 }),
+      ]),
+    },
+    '/lol/league/v4/entries/by-puuid/a': {
+      body: [entry('RANKED_FLEX_SR', 'SILVER'), entry('RANKED_SOLO_5x5', 'GOLD')],
+    },
+    '/lol/league/v4/entries/by-puuid/b': { body: [entry('RANKED_FLEX_SR', 'IRON')] },
+    '/lol/league/v4/entries/by-puuid/c': { body: [] },
+    // 'BOT' has no route: the fake API answers 404, which must not fail the match.
+  };
+  const d = await getMatchDetails('EUN1_9');
+  assert.deepEqual(
+    d.participants.map((p) => p.rank?.tier ?? null),
+    ['GOLD', 'IRON', null, null],
+  );
+  assert.equal('leagueId' in d.participants[0]!.rank!, false);
+  assert.equal(d.participants[0]!.damage, 20_000);
+});
+
+test('getMatchDetails rejects match ids from unknown servers', async () => {
+  routes = {};
+  await assert.rejects(getMatchDetails('XX9_1'), /Unknown server/);
+  await assert.rejects(getMatchDetails('EUN1_404'), /no longer exists/);
 });

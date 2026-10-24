@@ -85,14 +85,8 @@ export interface MatchPlayer extends RiotId {
   teamId: number;
 }
 
-/** One match from the searched player's point of view. */
-export interface MatchSummary {
-  matchId: string;
-  queueId: number;
-  startedAt: number; // epoch ms
-  durationSec: number;
-  win: boolean;
-  remake: boolean;
+/** One player's end-of-game numbers. */
+export interface PlayerMatchStats {
   championId: number;
   championName: string;
   champLevel: number;
@@ -102,7 +96,56 @@ export interface MatchSummary {
   cs: number;
   items: number[]; // 7 slots, 0 = empty, last one is the trinket
   position: string; // TOP | JUNGLE | MIDDLE | BOTTOM | UTILITY | ''
+  win: boolean;
+}
+
+/** One match from the searched player's point of view. */
+export interface MatchSummary extends PlayerMatchStats {
+  matchId: string;
+  queueId: number;
+  startedAt: number; // epoch ms
+  durationSec: number;
+  remake: boolean;
+  killParticipation: number; // 0..1 share of team kills
   players: MatchPlayer[];
+}
+
+/** One of the 10 players in proxy GET /match/:matchId. */
+export interface MatchParticipant extends PlayerMatchStats, RiotId {
+  teamId: number;
+  damage: number; // to champions
+  gold: number;
+  /** Current Solo/Duo rank (Flex if no Solo), not the rank at match time. */
+  rank: RankedEntry | null;
+}
+
+export interface MatchDetails {
+  matchId: string;
+  participants: MatchParticipant[];
+}
+
+/** Totals for one champion across the sampled ranked games. */
+export interface ChampionStats {
+  championId: number;
+  championName: string;
+  games: number;
+  wins: number;
+  kills: number;
+  deaths: number;
+  assists: number;
+  cs: number;
+}
+
+/**
+ * Proxy GET /season-champions/:platform/:puuid response. The proxy analyzes the season in the
+ * background, so clients poll while `status` is 'running'; `champions` grows as it goes.
+ */
+export interface SeasonChampions {
+  status: 'running' | 'done' | 'error';
+  analyzed: number; // ranked games counted so far (remakes excluded)
+  target: number; // ranked games this season (Solo/Duo + Flex wins + losses)
+  champions: ChampionStats[]; // most played first
+  error?: string;
 }
 
 /** Proxy GET /profile/:platform/:gameName/:tagLine response. */

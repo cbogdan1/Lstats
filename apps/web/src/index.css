@@ -11,6 +11,183 @@
   --color-ink-400: #7d9c8e;
   --color-ink-300: #a7c2b6;
   --color-ink-100: #e6f4ee;
+
+  --animate-rise: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-splash: splash-in 1.8s ease both, kenburns 16s ease-out both;
+  --animate-sweep: turn 3.5s linear infinite;
+  --animate-ping-ring: ping-ring 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-shimmer: shimmer 5s linear infinite;
+  --animate-draw: draw 0.9s cubic-bezier(0.65, 0, 0.35, 1) both;
+  --animate-snap: snap 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  --animate-fade: fade 1s ease both;
+  --animate-iris: iris 1.3s cubic-bezier(0.7, 0, 0.2, 1) both;
+  --animate-flash: flash 1s ease-out both;
+  --animate-focus: focus 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-qthrow: qthrow 1.6s linear both;
+  --animate-pulled: pulled 0.5s cubic-bezier(0.55, 0, 0.2, 1.15) both;
+  --animate-impact: impact 0.55s ease-out both;
+  --animate-shake: shake 0.35s ease-in-out both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes splash-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes kenburns {
+    from {
+      transform: scale(1.06);
+    }
+    to {
+      transform: scale(1.18) translate3d(-1.5%, -1%, 0);
+    }
+  }
+  @keyframes turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes ping-ring {
+    0% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.75);
+    }
+  }
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 100;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes snap {
+    from {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  /* The splash opens outward from the scope, like an iris. */
+  @keyframes iris {
+    from {
+      clip-path: circle(0% at 50% 40%);
+    }
+    to {
+      clip-path: circle(150% at 50% 40%);
+    }
+  }
+  @keyframes flash {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes focus {
+    from {
+      opacity: 0;
+      filter: blur(14px);
+      letter-spacing: 0.4em;
+    }
+    to {
+      opacity: 1;
+      filter: none;
+    }
+  }
+  /* Thrown for 0.5s, holds on hit, pulls back with the logo (same curve as pulled), retracts. */
+  @keyframes qthrow {
+    0% {
+      width: 0;
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+    31% {
+      width: calc(84vw - 3rem - 22px);
+    }
+    34% {
+      width: calc(84vw - 3rem - 22px);
+      animation-timing-function: cubic-bezier(0.55, 0, 0.2, 1.15);
+    }
+    65% {
+      width: calc(50vw - 3rem - 22px);
+      opacity: 1;
+      animation-timing-function: ease-in;
+    }
+    100% {
+      width: 0;
+      opacity: 0;
+    }
+  }
+  @keyframes pulled {
+    from {
+      transform: translateX(34vw);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes impact {
+    from {
+      opacity: 1;
+      transform: scale(0.7);
+    }
+    to {
+      opacity: 0;
+      transform: scale(2.4);
+    }
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: none;
+    }
+    20% {
+      transform: translate(-5px, 1px);
+    }
+    40% {
+      transform: translate(4px, -2px);
+    }
+    60% {
+      transform: translate(-3px, 1px);
+    }
+    80% {
+      transform: translate(2px, 0);
+    }
+  }
+  @keyframes shimmer {
+    to {
+      background-position: -200% center;
+    }
+  }
 }
 
 html {
@@ -23,4 +200,17 @@ body {
     radial-gradient(60rem 30rem at 50% -10rem, rgb(16 185 129 / 0.16), transparent 70%),
     var(--color-ink-950);
   background-repeat: no-repeat;
+}
+
+/* Reduced motion keeps the short one-time intro but stops endless motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-sweep,
+  .animate-ping-ring,
+  .animate-shimmer,
+  .animate-pulse,
+  .animate-splash,
+  .animate-bounce,
+  .animate-shake {
+    animation: none !important;
+  }
 }

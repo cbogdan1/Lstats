@@ -39,3 +39,39 @@ test('pause blocks new calls until it expires', () => {
     mock.timers.reset();
   }
 });
+
+test('normal calls start before queued low-priority calls', () => {
+  mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  try {
+    const limiter = new RateLimiter([{ count: 1, windowMs: 1000 }]);
+    const started: string[] = [];
+    void limiter.schedule(async () => void started.push('first'));
+    void limiter.schedule(async () => void started.push('crawl-1'), 'low');
+    void limiter.schedule(async () => void started.push('crawl-2'), 'low');
+    void limiter.schedule(async () => void started.push('user'));
+    assert.equal(limiter.pending, 3);
+    mock.timers.tick(1000);
+    mock.timers.tick(1000);
+    mock.timers.tick(1000);
+    assert.deepEqual(started, ['first', 'user', 'crawl-1', 'crawl-2']);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test('low-priority calls leave the rest of each window free for normal calls', () => {
+  mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  try {
+    const limiter = new RateLimiter([{ count: 10, windowMs: 1000 }], 0.6);
+    let crawled = 0;
+    for (let i = 0; i < 20; i++) void limiter.schedule(async () => void crawled++, 'low');
+    assert.equal(crawled, 6); // 60% of the window
+    let user = false;
+    void limiter.schedule(async () => void (user = true));
+    assert.equal(user, true); // starts immediately from the reserved share
+    mock.timers.tick(1000);
+    assert.equal(crawled, 12);
+  } finally {
+    mock.timers.reset();
+  }
+});

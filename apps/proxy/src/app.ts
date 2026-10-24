@@ -3,8 +3,9 @@ import Fastify, { type FastifyServerOptions } from 'fastify';
 import type { Platform, RiotId } from '@lol/shared';
 import { redis } from './cache.js';
 import { config, PLATFORM_REGIONS } from './config.js';
-import { getProfile } from './profile.js';
+import { getMatchDetails, getProfile } from './profile.js';
 import { getAccountByRiotId, limiter, RiotError } from './riot.js';
+import { getSeasonChampions } from './season.js';
 
 export async function buildApp(opts: FastifyServerOptions = { logger: true }) {
   const app = Fastify(opts);
@@ -53,6 +54,37 @@ export async function buildApp(opts: FastifyServerOptions = { logger: true }) {
       },
     },
     (req) => getProfile(req.params.platform, req.params.gameName, req.params.tagLine),
+  );
+
+  app.get<{ Params: { platform: Platform; puuid: string } }>(
+    '/season-champions/:platform/:puuid',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['platform', 'puuid'],
+          properties: {
+            platform: { type: 'string', enum: Object.keys(PLATFORM_REGIONS) },
+            puuid: { type: 'string', pattern: '^[A-Za-z0-9_-]{60,100}$' },
+          },
+        },
+      },
+    },
+    (req) => getSeasonChampions(req.params.platform, req.params.puuid),
+  );
+
+  app.get<{ Params: { matchId: string } }>(
+    '/match/:matchId',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['matchId'],
+          properties: { matchId: { type: 'string', pattern: '^[A-Z0-9]{2,4}_[0-9]{1,15}$' } },
+        },
+      },
+    },
+    (req) => getMatchDetails(req.params.matchId),
   );
 
   return app;
