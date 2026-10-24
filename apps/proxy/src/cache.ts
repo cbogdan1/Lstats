@@ -16,18 +16,21 @@ redis.on('error', (err: NodeJS.ErrnoException) => {
 });
 redis.on('ready', () => (warned = false));
 
-export async function cacheGet(key: string): Promise<string | null> {
-  try {
-    return await redis.get(key);
-  } catch {
-    return null;
-  }
-}
+// An object (not bare exports) so tests can stub it with mock.method.
+export const cache = {
+  async get(key: string): Promise<string | null> {
+    try {
+      return await redis.get(key);
+    } catch {
+      return null;
+    }
+  },
 
-export async function cacheSet(key: string, value: string, ttlSec: number): Promise<void> {
-  try {
-    await redis.set(key, value, 'EX', ttlSec);
-  } catch {
-    // Cache is best-effort.
-  }
-}
+  async set(key: string, value: string, ttlSec: number): Promise<void> {
+    try {
+      await redis.set(key, value, 'EX', ttlSec);
+    } catch {
+      // Cache is best-effort.
+    }
+  },
+};

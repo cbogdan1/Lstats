@@ -18,9 +18,7 @@ function createWindow(): void {
 
 lcu.on('phase', (phase) => {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send('lcu:phase', phase);
-  // Players are only scouted from the loading screen onward (context.txt §3).
-  if (phase === 'InProgress') live.start();
-  else live.stop();
+  live.syncWithPhase(phase);
 });
 
 live.on('data', (data) => console.log(`[live] ${data.allPlayers.length} players in game`));

@@ -13,7 +13,7 @@ const SUBSCRIBE = 5;
 const EVENT = 8;
 
 /** Lockfile format: `name:pid:port:password:protocol`. */
-function parseLockfile(text: string): { port: number; password: string } {
+export function parseLockfile(text: string): { port: number; password: string } {
   const [, , port, password] = text.trim().split(':');
   if (!port || !password) throw new Error('Malformed lockfile');
   return { port: Number(port), password };
@@ -30,7 +30,10 @@ export class LcuConnector extends EventEmitter<{ phase: [GameflowPhase] }> {
   private retry?: NodeJS.Timeout;
   private stopped = true;
 
-  constructor(private readonly lockfilePath = DEFAULT_LOCKFILE) {
+  constructor(
+    private readonly lockfilePath = DEFAULT_LOCKFILE,
+    private readonly retryMs = RETRY_MS,
+  ) {
     super();
   }
 
@@ -52,22 +55,24 @@ export class LcuConnector extends EventEmitter<{ phase: [GameflowPhase] }> {
     } catch {
       return this.scheduleRetry(); // client not running yet
     }
+    if (this.stopped) return; // stop() ran while the lockfile was being read
     const auth = `Basic ${Buffer.from(`riot:${creds.password}`).toString('base64')}`;
     const ws = new WebSocket(`wss://127.0.0.1:${creds.port}`, 'wamp', {
       headers: { Authorization: auth },
       agent: localAgent,
     });
     this.ws = ws;
+    let sawEvent = false;
 
     ws.on('open', async () => {
       ws.send(JSON.stringify([SUBSCRIBE, PHASE_EVENT]));
       try {
-        this.setPhase(
-          await localGetJson<GameflowPhase>(
-            `https://127.0.0.1:${creds.port}/lol-gameflow/v1/gameflow-phase`,
-            auth,
-          ),
+        const initial = await localGetJson<GameflowPhase>(
+          `https://127.0.0.1:${creds.port}/lol-gameflow/v1/gameflow-phase`,
+          auth,
         );
+        // A pushed event or a disconnect is newer than this snapshot; don't overwrite it.
+        if (!sawEvent && ws.readyState === WebSocket.OPEN) this.setPhase(initial);
       } catch {
         // Not ready yet; the subscription will deliver the next change.
       }
@@ -79,8 +84,10 @@ export class LcuConnector extends EventEmitter<{ phase: [GameflowPhase] }> {
       } catch {
         return; // LCU sends empty frames
       }
-      if (Array.isArray(msg) && msg[0] === EVENT && msg[1] === PHASE_EVENT)
+      if (Array.isArray(msg) && msg[0] === EVENT && msg[1] === PHASE_EVENT) {
+        sawEvent = true;
         this.setPhase(msg[2].data);
+      }
     });
     ws.on('error', () => {}); // 'close' always follows and handles reconnect
     ws.on('close', () => {
@@ -90,7 +97,7 @@ export class LcuConnector extends EventEmitter<{ phase: [GameflowPhase] }> {
   }
 
   private scheduleRetry(): void {
-    if (!this.stopped) this.retry = setTimeout(() => void this.connect(), RETRY_MS);
+    if (!this.stopped) this.retry = setTimeout(() => void this.connect(), this.retryMs);
   }
 
   private setPhase(phase: GameflowPhase): void {

@@ -1,16 +1,40 @@
 {
   "name": "@lol/desktop",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Lstats League of Legends desktop companion",
+  "author": "cbogdan1",
   "private": true,
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false"
+    "dist": "electron-vite build && electron-builder --win",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json --composite false && tsc --noEmit -p tsconfig.web.json --composite false",
+    "test": "node --import tsx --test \"src/main/**/*.test.ts\""
   },
-  "dependencies": {
-    "ws": "^8.22.0"
+  "build": {
+    "appId": "com.cbogdan1.lstats",
+    "productName": "Lstats",
+    "files": [
+      "out/**"
+    ],
+    "npmRebuild": false,
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "Lstats-Setup.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "cbogdan1",
+      "repo": "Lstats",
+      "releaseType": "release"
+    }
   },
   "devDependencies": {
     "@lol/shared": "*",
@@ -19,11 +43,14 @@
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^6.1.2",
-    "electron": "^45.0.0",
+    "electron": "45.0.0",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "selfsigned": "^5.5.0",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "ws": "^8.22.0"
   }
 }

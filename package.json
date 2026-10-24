@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "dev": "concurrently -k -n redis,proxy,desktop -c red,blue,green \"npm run redis\" \"npm run dev -w @lol/proxy\" \"npm run dev -w @lol/desktop\"",
+    "dev:web": "concurrently -k -n redis,proxy,web -c red,blue,magenta \"npm run redis\" \"npm run dev -w @lol/proxy\" \"npm run dev -w @lol/web\"",
+    "dist:desktop": "npm run dist -w @lol/desktop",
     "redis": "wsl -e docker start -a lol-redis",
     "build": "npm run build --workspaces --if-present",
     "lint": "eslint .",
@@ -24,6 +26,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0"
   },

@@ -11,11 +11,9 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.1",
     "@lol/shared": "*",
     "fastify": "^5.12.7",
     "ioredis": "^6.0.0"
-  },
-  "devDependencies": {
-    "tsx": "^4.23.15"
   }
 }

@@ -1,5 +1,5 @@
 import type { Account } from '@lol/shared';
-import { cacheGet, cacheSet } from './cache.js';
+import { cache } from './cache.js';
 import { config, TTL } from './config.js';
 import { RateLimiter } from './rateLimiter.js';
 
@@ -37,12 +37,12 @@ async function riotGet<T>(
   ttlSec: number,
 ): Promise<T> {
   if (!config.riotApiKey) throw new RiotError(503, 'RIOT_API_KEY is not set in apps/proxy/.env');
-  const cached = await cacheGet(cacheKey);
+  const cached = await cache.get(cacheKey);
   if (cached) return JSON.parse(cached) as T;
   const data = await limiter.schedule(() =>
     fetchRiot<T>(`https://${host}.api.riotgames.com${path}`),
   );
-  await cacheSet(cacheKey, JSON.stringify(data), ttlSec);
+  await cache.set(cacheKey, JSON.stringify(data), ttlSec);
   return data;
 }
 
