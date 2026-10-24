@@ -1,1 +1,26 @@
 @import 'tailwindcss';
+
+/* Lstats theme: green-tinted near-black surfaces, emerald brand. */
+@theme {
+  --color-ink-950: #040a07;
+  --color-ink-900: #07120d;
+  --color-ink-850: #0b1912;
+  --color-ink-800: #102219;
+  --color-ink-700: #183326;
+  --color-ink-600: #25483a;
+  --color-ink-400: #7d9c8e;
+  --color-ink-300: #a7c2b6;
+  --color-ink-100: #e6f4ee;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-ink-950);
+}
+
+body {
+  background:
+    radial-gradient(60rem 30rem at 50% -10rem, rgb(16 185 129 / 0.16), transparent 70%),
+    var(--color-ink-950);
+  background-repeat: no-repeat;
+}

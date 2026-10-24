@@ -1,7 +1,9 @@
 import cors from '@fastify/cors';
 import Fastify, { type FastifyServerOptions } from 'fastify';
+import type { Platform, RiotId } from '@lol/shared';
 import { redis } from './cache.js';
-import { config } from './config.js';
+import { config, PLATFORM_REGIONS } from './config.js';
+import { getProfile } from './profile.js';
 import { getAccountByRiotId, limiter, RiotError } from './riot.js';
 
 export async function buildApp(opts: FastifyServerOptions = { logger: true }) {
@@ -21,21 +23,36 @@ export async function buildApp(opts: FastifyServerOptions = { logger: true }) {
     queued: limiter.pending,
   }));
 
-  app.get<{ Params: { gameName: string; tagLine: string } }>(
+  const riotIdParams = {
+    gameName: { type: 'string', minLength: 3, maxLength: 16 },
+    tagLine: { type: 'string', minLength: 3, maxLength: 5 },
+  };
+
+  app.get<{ Params: RiotId }>(
     '/account/:gameName/:tagLine',
+    {
+      schema: {
+        params: { type: 'object', required: ['gameName', 'tagLine'], properties: riotIdParams },
+      },
+    },
+    (req) => getAccountByRiotId(req.params.gameName, req.params.tagLine),
+  );
+
+  app.get<{ Params: RiotId & { platform: Platform } }>(
+    '/profile/:platform/:gameName/:tagLine',
     {
       schema: {
         params: {
           type: 'object',
-          required: ['gameName', 'tagLine'],
+          required: ['platform', 'gameName', 'tagLine'],
           properties: {
-            gameName: { type: 'string', minLength: 3, maxLength: 16 },
-            tagLine: { type: 'string', minLength: 3, maxLength: 5 },
+            platform: { type: 'string', enum: Object.keys(PLATFORM_REGIONS) },
+            ...riotIdParams,
           },
         },
       },
     },
-    (req) => getAccountByRiotId(req.params.gameName, req.params.tagLine),
+    (req) => getProfile(req.params.platform, req.params.gameName, req.params.tagLine),
   );
 
   return app;

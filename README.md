@@ -39,7 +39,8 @@ npm run dev:web    # Redis + proxy + web app (http://localhost:5173)
 
 Other scripts: `npm run build`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run format`.
 
-Quick checks: `curl localhost:3001/health`, `curl localhost:3001/account/<gameName>/<tagLine>`.
+Quick checks: `curl localhost:3001/health`, `curl localhost:3001/profile/eun1/<gameName>/<tagLine>`
+(level, rank, mastery and the last 10 matches; about 15 Riot calls when nothing is cached).
 
 If League is installed elsewhere, set `LOL_LOCKFILE` to the full lockfile path before `npm run dev`.
 
