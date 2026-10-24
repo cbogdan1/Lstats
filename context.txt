@@ -1,0 +1,46 @@
+# Project Context: League of Legends Desktop Companion App
+
+## 1. Project Overview
+We are building a desktop companion application for League of Legends (similar to OP.GG, U.GG, or Porofessor). The app detects the player's current game state locally and fetches statistical data about allies and enemies to help the user prepare during the loading screen and in-game.
+
+## 2. Core Features
+- **Auto-Detection of Game State:** Automatically detect when the user enters Champion Select, the Loading Screen, and an Active Match.
+- **Champ Select Helper:** Recommend runes, summoner spells, and item builds for the user's selected champion.
+- **Live Match Scouting (Loading Screen & In-Game):** Once the match starts (Loading Screen onwards), display a dashboard of all 10 players (5 allies, 5 enemies) showing:
+  - Current Rank / Tier / LP & Win/Loss ratio
+  - Recent match history & KDA
+  - Champion mastery & win rate on their currently selected champion
+  - Most played champions & roles (identifying autofilled players or one-tricks)
+- **Post-Game Summary:** Breakdown of performance stats after the match ends.
+
+## 3. Strict Riot Games ToS & Vanguard Compliance (CRITICAL)
+Everything we build MUST strictly adhere to Riot Games' Developer Policies and Third-Party Application rules to ensure 0% risk of player bans or Vanguard flags:
+- **NO Memory Reading or Injection:** Never read game memory, inject DLLs, or hook into `League of Legends.exe` directly.
+- **Champion Select Anonymity:** In Ranked Solo/Duo Champion Select, ally and enemy identities are hidden by Riot. Do NOT attempt to bypass, scrape, or de-anonymize hidden Summoner Names/Riot IDs during the draft phase. Enemy/non-party scouting data must ONLY be fetched and displayed once the game transitions to the Loading Screen (`InProgress` phase).
+- **No Unfair In-Game Advantage:** Do not build automated enemy ultimate/summoner spell cooldown trackers, jungle camp timers that aren't natively provided, or real-time decision alerts (e.g., "Enemy hit level 6" or "Gank top now").
+- **API Rate Limits & Security:** Never hardcode or expose the Riot Games API key in the client-side desktop executable. All requests to the official Riot Web API must route through a lightweight backend proxy server that manages caching and rate limiting.
+
+## 4. Technical Architecture & APIs Used
+1. **LCU API (League Client Update API):**
+   - Local HTTPS/WebSocket server running while the League Client is open (authenticated via the local `lockfile`).
+   - Used to listen to `/lol-gameflow/v1/gameflow-phase` (`Lobby`, `ChampSelect`, `InProgress`, `EndOfGame`) and `/lol-champ-select/v1/session`.
+2. **Live Client Data API:**
+   - Local endpoint at `https://127.0.0.1:2999/liveclientdata/allgamedata` (active during the loading screen and match).
+   - Used to retrieve the list of all 10 players' Riot IDs (`riotIdGameName` + `riotIdTagLine`) and selected champions once the game begins.
+3. **Official Riot Games Web API (via Backend Proxy):**
+   - `ACCOUNT-V1`: Convert `gameName` and `tagLine` into `puuid`.
+   - `SUMMONER-V4` & `LEAGUE-V4`: Fetch summoner level, rank, tier, LP, and season win rates.
+   - `CHAMPION-MASTERY-V4`: Fetch top played champions and mastery points.
+   - `MATCH-V5`: Fetch recent match IDs and match history details to calculate recent form and role preferences.
+4. **Data Dragon (DDragon):**
+   - Riot's static data CDN for champion icons, item icons, runes, and spell assets.
+
+## 5. Proposed Tech Stack
+- **Desktop Client:** Tauri (Rust + React/TypeScript + Tailwind CSS) OR Electron (Node.js + React/TypeScript).
+- **Backend Proxy Server:** Node.js (Express/Fastify) or Python (FastAPI) with Redis caching to protect the Riot API key and prevent `429 Too Many Requests` errors when fetching 10 players simultaneously.
+
+## 6. Development Guidelines
+- Always prioritize Riot API compliance and clean, modular code.
+- Remember that Riot migrated from Summoner Names to **Riot IDs (`gameName#tagLine`)** and **PUUIDs** as the primary identifiers across endpoints.
+- Handle self-signed SSL certificates properly when writing code that queries local LCU (`127.0.0.1:{port}`) and Live Client (`127.0.0.1:2999`) endpoints.
+- When writing code that fetches data for all 10 players in a match, optimize for concurrency and caching so we don't hit Riot's development API rate limits (20 requests / 1 sec, 100 requests / 2 mins).
